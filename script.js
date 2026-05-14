@@ -14,6 +14,24 @@ const itemHeadlines = document.querySelectorAll(
 const overlay = document.querySelector(".timeline-overlay");
 const backButton = document.querySelector(".timeline-back");
 
+// 图片缓存和预加载策略
+function preloadImageOnExpand(id) {
+  const item = document.querySelector(`[data-timeline=${id}]`);
+  if (item) {
+    const images = item.querySelectorAll('.timeline-content img');
+    images.forEach((img, index) => {
+      // 预加载即将显示的图片
+      if (index < 3) {
+        const link = document.createElement('link');
+        link.rel = 'prefetch';
+        link.as = 'image';
+        link.href = img.src;
+        document.head.appendChild(link);
+      }
+    });
+  }
+}
+
 for (item of items) {
   const randomId = Math.random().
   toString(36).
@@ -65,6 +83,9 @@ function handleItemClick(id) {
 
   if (!isExpanded) {
     isExpanded = true;
+    // 预加载点击项的图片
+    preloadImageOnExpand(id);
+    
     const item = document.querySelector(`[data-timeline=${id}]`);
     const itemHeadline = item.querySelector(".timeline-headline");
     const itemSubTitle = item.querySelector(".timeline-subtitle");
