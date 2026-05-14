@@ -43,19 +43,16 @@ for (item of items) {
     handleItemClick(randomId);
   });
 
+  // 移除不必要的 hover 放大动画
   item.addEventListener("mouseover", e => {
     if (!isExpanded && e.target.tagName === "IMG") {
+      // 仅显示 READ MORE 按钮，不放大图片
       e.target.parentNode.children.length > 1 &&
       TweenMax.fromTo(
       e.target.parentNode.children[1],
-      1,
+      0.3,
       { opacity: 0, scaleX: 0.5, scaleY: 0.1, y: -70 },
       { opacity: 1, scaleX: 1, scaleY: 1, y: -5, ease: Back.easeOut });
-
-      TweenMax.to(e.target, 30, { scale: 2 });
-      TweenMax.to(e.target.parentNode, 4, {
-        boxShadow: "0 30px 70px rgba(0,0,0,.45)" });
-
     }
   });
 
@@ -64,13 +61,8 @@ for (item of items) {
       e.target.parentNode.children.length > 1 &&
       TweenMax.to(
       e.target.parentNode.children[1],
-      1,
+      0.3,
       { opacity: 0, scaleX: 1, scaleY: 1, y: 100 });
-
-      TweenMax.to(e.target, 1, { scale: 1 });
-      TweenMax.to(e.target.parentNode, 1, {
-        boxShadow: "0 10px 30px rgba(0,0,0,.2)" });
-
     }
   });
 }
@@ -100,9 +92,9 @@ function handleItemClick(id) {
     const itemOffsetTop = item.getBoundingClientRect().y * -1;
     selectedItem = item;
 	
-    TweenMax.to(itemPhotoImg, 1, { scale: 1 });
-    TweenMax.to(itemCTA, .5, { opacity: 0 });
-    TweenMax.to(itemPhoto, 1, { boxShadow: "0 10px 30px rgba(0,0,0, .2)" });
+    // 快速隐藏其他项和 READ MORE 按钮
+    TweenMax.to(itemCTA, 0.2, { opacity: 0 });
+    TweenMax.to(unSelectedItems, 0.15, { opacity: 0 });
 
     for (_i of items) {_i.classList.remove("is-active");}
     timeline.classList.add("is-expanded");
@@ -110,35 +102,32 @@ function handleItemClick(id) {
     backButton.classList.add("is-active");
     itemTL = new TimelineMax({ paused: false });
 
+    // 快速展开动画 - 总耗时 0.4s
     itemTL.
     set(timeline, { maxWidth: 760 }).
     set(items, { clearProps: "all" }).
     set(itemSubTitle, { clearProps: "all" }).
     set(itemPhoto, { clearProps: "all" }).
     set(itemHeadline, { clearProps: "all" }).
-    to(unSelectedChildItems, 0.3, { y: 40, opacity: 0 }).
-    to(itemHeadline,0.5,{opacity: 0,left: 0,top: "30vh",width: "100%",textAlign: "center"},"-=.35").
     set(itemExcerpt, { display: "none" }).
-    to(unSelectedItems, 0.2, { opacity: 0 }, "-=.35").
     add("itemExpand").
 	
-    to(timeline, 0.1, { maxWidth: "100%" }, "itemExpand").
-    to(item,0.3,{ y: itemOffsetTop, width: "100%", height: "60vh" },"itemExpand").
-    to(itemHeadline, 1, { top: 0, height: "100vh", padding: 0 }, "-=.3").
-    to(itemPhoto, 1, { borderRadius: 0, height: "100vh" }, "itemExpand").
-    add("resize").
-	
-    to(itemHeadline,1,{height: 100,opacity: 1,fontSize: "calc(.4vw + 10px)",backgroundColor: "rgba(45, 45, 45, 0.8)" },"resize").
-    to(itemPhoto, 1, { height: 100 }, "resize").
-    set(itemPhoto, { height: 100, position: "fixed", top: 0 }).
-    set(itemHeadline, { position: "fixed", top: 0 }).
-    set(item, {y: 0,height: "auto",marginTop: 0,clearProps: "transform" }).
-    set(unSelectedItems, { display: "none" }).
-    set(timeline, { paddingBottom: 0 }).
-    set(itemContent, { display: "block", top: 100 }).
-    set(window, { scrollTo: { y: 0 } }).
-    fromTo(itemContent, 0.4, { opacity: 0, y: 70 }, { opacity: 1, y: 0 }).
-    staggerFromTo(itemChildContents,0.7,{ opacity: 0, y: 20 },{ opacity: 1, y: 0 },0.1,"-=.3");
+    // 第1阶段：快速扩展到全屏 (0.35s)
+    to(timeline, 0.08, { maxWidth: "100%" }, "itemExpand").
+    to(item, 0.35, { y: itemOffsetTop, width: "100%", height: "100vh" }, "itemExpand").
+    to(itemPhoto, 0.35, { borderRadius: 0, height: "100vh" }, "itemExpand").
+    to(itemHeadline, 0.35, { top: 0, height: "100vh", padding: 0, opacity: 1 }, "itemExpand").
+    add("showContent", "+=0.05").
+    
+    // 第2阶段：显示内容 (0.25s)
+    set(itemPhoto, { height: 100, position: "fixed", top: 0 }, "showContent").
+    set(itemHeadline, { position: "fixed", top: 0, height: 100, opacity: 1, fontSize: "calc(.4vw + 10px)", backgroundColor: "rgba(45, 45, 45, 0.8)" }, "showContent").
+    set(item, { y: 0, height: "auto", marginTop: 0, clearProps: "transform" }, "showContent").
+    set(unSelectedItems, { display: "none" }, "showContent").
+    set(timeline, { paddingBottom: 0 }, "showContent").
+    set(itemContent, { display: "block", top: 100 }, "showContent").
+    set(window, { scrollTo: { y: 0 } }, "showContent").
+    fromTo(itemContent, 0.2, { opacity: 0 }, { opacity: 1 }, "showContent");
   }
 }
 
@@ -154,10 +143,10 @@ backButton.addEventListener("click", () => {
         itemTL.pause();
         TweenMax.staggerFromTo(
         items,
-        0.9,
-        { opacity: 0, y: 30 },
-        { opacity: 1, y: 0 },
-        0.04,
+        0.3,
+        { opacity: 0 },
+        { opacity: 1 },
+        0.02,
         () => {
           isExpanded = false;
         });
@@ -165,10 +154,10 @@ backButton.addEventListener("click", () => {
         TweenMax.set(itemHeadlines, { clearProps: "all" });
       } });
 
-
+    // 快速关闭动画 - 总耗时 0.3s
     overlayTL.
     to(selectedItem, 0, { opacity: 0 }).
-    to(overlay, 0, { height: "110vh", ease: Expo.easeOut }, "+=.2").
-    to(overlay, 0, { height: 0, top: "100%", ease: Expo.easeOut });
+    to(overlay, 0, { height: "110vh", ease: Expo.easeOut }, "+=0.15").
+    to(overlay, 0.15, { height: 0, top: "100%", ease: Expo.easeOut });
   }
 });
