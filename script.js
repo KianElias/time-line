@@ -39,30 +39,37 @@ for (item of items) {
   substr(2, 10);
   item.setAttribute("data-timeline", randomId);
 
-  item.addEventListener("click", e => {
-    handleItemClick(randomId);
-  });
-
-  // 移除不必要的 hover 放大动画
-  item.addEventListener("mouseover", e => {
-    if (!isExpanded && e.target.tagName === "IMG") {
-      // 仅显示 READ MORE 按钮，不放大图片
-      e.target.parentNode.children.length > 1 &&
-      TweenMax.fromTo(
-      e.target.parentNode.children[1],
-      0.3,
-      { opacity: 0, scaleX: 0.5, scaleY: 0.1, y: -70 },
-      { opacity: 1, scaleX: 1, scaleY: 1, y: -5, ease: Back.easeOut });
+  // 点击图片直接进入
+  const itemPhoto = item.querySelector(".timeline-photo");
+  itemPhoto.addEventListener("click", e => {
+    if (!isExpanded) {
+      handleItemClick(randomId);
     }
   });
 
-  item.addEventListener("mouseout", e => {
-    if (!isExpanded && e.target.tagName === "IMG") {
-      e.target.parentNode.children.length > 1 &&
-      TweenMax.to(
-      e.target.parentNode.children[1],
-      0.3,
-      { opacity: 0, scaleX: 1, scaleY: 1, y: 100 });
+  // Hover 时显示提示
+  itemPhoto.addEventListener("mouseover", e => {
+    if (!isExpanded) {
+      // 显示 READ MORE 按钮提示用户可点击
+      const readMoreBtn = itemPhoto.querySelector(".timeline-cta");
+      if (readMoreBtn) {
+        TweenMax.fromTo(
+          readMoreBtn,
+          0.3,
+          { opacity: 0, scaleX: 0.5, scaleY: 0.1, y: -70 },
+          { opacity: 1, scaleX: 1, scaleY: 1, y: -5, ease: Back.easeOut }
+        );
+      }
+    }
+  });
+
+  itemPhoto.addEventListener("mouseout", e => {
+    if (!isExpanded) {
+      // 隐藏 READ MORE 按钮
+      const readMoreBtn = itemPhoto.querySelector(".timeline-cta");
+      if (readMoreBtn) {
+        TweenMax.to(readMoreBtn, 0.3, { opacity: 0, scaleX: 1, scaleY: 1, y: 100 });
+      }
     }
   });
 }
