@@ -14,6 +14,20 @@ const itemHeadlines = document.querySelectorAll(
 const overlay = document.querySelector(".timeline-overlay");
 const backButton = document.querySelector(".timeline-back");
 
+// 初始化所有图片的占位符（保留布局）
+function initializeImagePlaceholders() {
+  items.forEach(item => {
+    const contentImages = item.querySelectorAll('.timeline-content img');
+    contentImages.forEach(img => {
+      // 设置 aspect-ratio 保留空间，防止文字堆叠
+      img.style.aspectRatio = '16 / 9';
+      img.style.backgroundColor = 'rgba(255, 255, 255, 0.05)';
+      // 重置 opacity 以便 CSS 动画生效
+      img.style.opacity = '0';
+    });
+  });
+}
+
 // 图片缓存和预加载策略
 function preloadImageOnExpand(id) {
   const item = document.querySelector(`[data-timeline=${id}]`);
@@ -31,6 +45,9 @@ function preloadImageOnExpand(id) {
     });
   }
 }
+
+// 页面加载完成后初始化
+document.addEventListener('DOMContentLoaded', initializeImagePlaceholders);
 
 for (item of items) {
   const randomId = Math.random().
@@ -138,9 +155,21 @@ function handleItemClick(id) {
     set(item, { y: 0, height: "auto", marginTop: 0, clearProps: "transform" }, "-=0.15").
     set(timeline, { paddingBottom: 0 }, "-=0.15").
     
-    // 内容平滑淡入
-    fromTo(itemContent, 0.3, { opacity: 0, y: 20 }, { opacity: 1, y: 0 }, "-=0.1").
-    staggerFromTo(itemChildContents, 0.25, { opacity: 0, y: 15 }, { opacity: 1, y: 0 }, 0.05, "-=0.2");
+    // 内容平滑淡入 + 图片优雅加载动画
+    fromTo(itemContent, 0.3, { opacity: 0, y: 20 }, { opacity: 1, y: 0 }, "-=0.1");
+    
+    // 让每个内容项逐个出现，包括图片
+    const contentElements = itemChildContents;
+    contentElements.forEach((el, index) => {
+      if (el.tagName === 'IMG') {
+        // 图片：清除初始的 opacity: 0，让 CSS 动画接管
+        itemTL.to(el, 0.01, { opacity: 0 }, "-=0.2" + (index * 0.08)).
+                to(el, 0.5, { opacity: 1, y: 0 }, { ease: Power1.easeOut });
+      } else {
+        // 文字：正常淡入
+        itemTL.fromTo(el, 0.25, { opacity: 0, y: 15 }, { opacity: 1, y: 0 }, "-=0.2" + (index * 0.08));
+      }
+    });
   }
 }
 
