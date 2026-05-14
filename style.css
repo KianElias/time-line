@@ -195,7 +195,7 @@ body {
   opacity: 1;
   top: 26px;
   visibility: visible;
-  transition-delay: 2.4s;
+  transition-delay: 0s;
 }
 .timeline-back:hover {
   background-color: rgba(58, 58, 58, 0.8);
