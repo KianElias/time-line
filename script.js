@@ -190,6 +190,14 @@ function handleItemClick(id) {
     timeline.classList.add("is-expanded");
     item.classList.add("is-active");
     backButton.classList.add("is-active");
+    
+    // 先清除所有可能的残留样式
+    items.forEach(it => {
+      TweenMax.set(it, { clearProps: "all" });
+    });
+    TweenMax.set(timeline, { clearProps: "all" });
+    TweenMax.set(itemHeadlines, { clearProps: "all" });
+    
     itemTL = new TimelineMax({ paused: false });
 
     // 平滑自然的展开动画 - 总耗时 0.5s
@@ -254,11 +262,69 @@ backButton.addEventListener("click", () => {
     timeline.classList.remove("is-expanded");
     selectedItem.classList.remove("is-active");
     backButton.classList.remove("is-active");
+    
+    // 重置所有被修改的元素样式
+    const itemHeadline = selectedItem.querySelector(".timeline-headline");
+    const itemPhoto = selectedItem.querySelector(".timeline-photo");
+    const itemContent = selectedItem.querySelector(".timeline-content");
+    
     overlayTL = new TimelineMax({
       paused: false,
       onComplete: () => {
         itemTL.progress(0);
         itemTL.pause();
+        
+        // 完全清除所有 GSAP 修改的样式，恢复到初始状态
+        TweenMax.set(selectedItem, { 
+          clearProps: "all",
+          height: "auto",
+          width: "auto",
+          margin: "10px 0",
+          position: "relative"
+        });
+        
+        TweenMax.set(itemPhoto, { 
+          clearProps: "all",
+          height: "100%",
+          position: "relative",
+          top: "auto"
+        });
+        
+        TweenMax.set(itemHeadline, { 
+          clearProps: "all",
+          position: "absolute",
+          top: "100%",
+          width: "100%",
+          height: "auto"
+        });
+        
+        TweenMax.set(itemContent, { 
+          clearProps: "all",
+          display: "none"
+        });
+        
+        // 清除所有 timeline-item 的样式，恢复初始状态
+        items.forEach(item => {
+          TweenMax.set(item, { 
+            clearProps: "all",
+            height: "30%",
+            width: "40%",
+            position: "relative",
+            margin: "10px 0"
+          });
+        });
+        
+        // 清除 timeline 的样式
+        TweenMax.set(timeline, { 
+          clearProps: "all",
+          maxWidth: "760px",
+          paddingBottom: "100px"
+        });
+        
+        // 重置所有 headlines
+        TweenMax.set(itemHeadlines, { clearProps: "all" });
+        
+        // 最后淡入列表项
         TweenMax.staggerFromTo(
         items,
         0.4,
@@ -269,8 +335,6 @@ backButton.addEventListener("click", () => {
           isExpanded = false;
           isAnimating = false;
         });
-
-        TweenMax.set(itemHeadlines, { clearProps: "all" });
       } });
 
     // 平滑自然的关闭动画 - 总耗时 0.4s
