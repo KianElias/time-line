@@ -114,6 +114,11 @@ for (item of items) {
   const itemPhoto = item.querySelector(".timeline-photo");
   const readMoreBtn = itemPhoto.querySelector(".timeline-cta");
   
+  // 触摸事件追踪 - 用于区分点击和滑动
+  let touchStartX = 0;
+  let touchStartY = 0;
+  let touchStartTime = 0;
+  
   // 统一处理点击事件（支持手机和电脑）
   function triggerExpand() {
     if (!isExpanded) {
@@ -145,11 +150,28 @@ for (item of items) {
     }
   });
   
-  // 手机端 Touch 事件（防止二次触发）
+  // 手机端 Touch 事件 - 区分点击和滑动
   itemPhoto.addEventListener("touchstart", e => {
-    // 在手机上，直接触发展开，不显示提示
-    if (!isExpanded) {
-      handleItemClick(randomId);
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+    touchStartTime = Date.now();
+  }, { passive: true });
+  
+  itemPhoto.addEventListener("touchend", e => {
+    const touchEndX = e.changedTouches[0].clientX;
+    const touchEndY = e.changedTouches[0].clientY;
+    const touchEndTime = Date.now();
+    
+    // 计算滑动距离和时间
+    const distanceX = Math.abs(touchEndX - touchStartX);
+    const distanceY = Math.abs(touchEndY - touchStartY);
+    const totalDistance = Math.sqrt(distanceX * distanceX + distanceY * distanceY);
+    const touchDuration = touchEndTime - touchStartTime;
+    
+    // 只有在滑动距离小于 10px 且持续时间少于 300ms 时，才认为是点击
+    if (totalDistance < 10 && touchDuration < 300 && !isExpanded) {
+      e.preventDefault();
+      triggerExpand();
     }
   }, { passive: true });
 }
@@ -191,12 +213,14 @@ function handleItemClick(id) {
     item.classList.add("is-active");
     backButton.classList.add("is-active");
     
-    // 先清除所有可能的残留样式
+    // 先清除所有可能的残留样式 - 使用 cssText 清除
     items.forEach(it => {
-      TweenMax.set(it, { clearProps: "all" });
+      it.style.cssText = '';
     });
-    TweenMax.set(timeline, { clearProps: "all" });
-    TweenMax.set(itemHeadlines, { clearProps: "all" });
+    timeline.style.cssText = '';
+    itemHeadlines.forEach(h => {
+      h.style.cssText = '';
+    });
     
     itemTL = new TimelineMax({ paused: false });
 
@@ -274,55 +298,24 @@ backButton.addEventListener("click", () => {
         itemTL.progress(0);
         itemTL.pause();
         
-        // 完全清除所有 GSAP 修改的样式，恢复到初始状态
-        TweenMax.set(selectedItem, { 
-          clearProps: "all",
-          height: "auto",
-          width: "auto",
-          margin: "10px 0",
-          position: "relative"
-        });
+        // 先移除所有 inline 样式，使用 CSS 重置
+        selectedItem.style.cssText = '';
+        itemPhoto.style.cssText = '';
+        itemHeadline.style.cssText = '';
+        itemContent.style.cssText = '';
         
-        TweenMax.set(itemPhoto, { 
-          clearProps: "all",
-          height: "100%",
-          position: "relative",
-          top: "auto"
-        });
-        
-        TweenMax.set(itemHeadline, { 
-          clearProps: "all",
-          position: "absolute",
-          top: "100%",
-          width: "100%",
-          height: "auto"
-        });
-        
-        TweenMax.set(itemContent, { 
-          clearProps: "all",
-          display: "none"
-        });
-        
-        // 清除所有 timeline-item 的样式，恢复初始状态
+        // 清除所有 timeline-item 的 inline 样式
         items.forEach(item => {
-          TweenMax.set(item, { 
-            clearProps: "all",
-            height: "30%",
-            width: "40%",
-            position: "relative",
-            margin: "10px 0"
-          });
+          item.style.cssText = '';
         });
         
-        // 清除 timeline 的样式
-        TweenMax.set(timeline, { 
-          clearProps: "all",
-          maxWidth: "760px",
-          paddingBottom: "100px"
-        });
+        // 清除 timeline 的 inline 样式
+        timeline.style.cssText = '';
         
-        // 重置所有 headlines
-        TweenMax.set(itemHeadlines, { clearProps: "all" });
+        // 清除所有 headlines 的 inline 样式
+        itemHeadlines.forEach(h => {
+          h.style.cssText = '';
+        });
         
         // 最后淡入列表项
         TweenMax.staggerFromTo(
