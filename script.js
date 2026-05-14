@@ -92,17 +92,13 @@ function handleItemClick(id) {
     const itemOffsetTop = item.getBoundingClientRect().y * -1;
     selectedItem = item;
 	
-    // 快速隐藏其他项和 READ MORE 按钮
-    TweenMax.to(itemCTA, 0.2, { opacity: 0 });
-    TweenMax.to(unSelectedItems, 0.15, { opacity: 0 });
-
     for (_i of items) {_i.classList.remove("is-active");}
     timeline.classList.add("is-expanded");
     item.classList.add("is-active");
     backButton.classList.add("is-active");
     itemTL = new TimelineMax({ paused: false });
 
-    // 快速展开动画 - 总耗时 0.4s
+    // 平滑自然的展开动画 - 总耗时 0.5s
     itemTL.
     set(timeline, { maxWidth: 760 }).
     set(items, { clearProps: "all" }).
@@ -110,24 +106,34 @@ function handleItemClick(id) {
     set(itemPhoto, { clearProps: "all" }).
     set(itemHeadline, { clearProps: "all" }).
     set(itemExcerpt, { display: "none" }).
-    add("itemExpand").
-	
-    // 第1阶段：快速扩展到全屏 (0.35s)
-    to(timeline, 0.08, { maxWidth: "100%" }, "itemExpand").
-    to(item, 0.35, { y: itemOffsetTop, width: "100%", height: "100vh" }, "itemExpand").
-    to(itemPhoto, 0.35, { borderRadius: 0, height: "100vh" }, "itemExpand").
-    to(itemHeadline, 0.35, { top: 0, height: "100vh", padding: 0, opacity: 1 }, "itemExpand").
-    add("showContent", "+=0.05").
+    set(unSelectedItems, { display: "none" }).
+    set(itemContent, { display: "block", top: 100 }).
+    set(window, { scrollTo: { y: 0 } }).
+    add("expandStart").
     
-    // 第2阶段：显示内容 (0.25s)
-    set(itemPhoto, { height: 100, position: "fixed", top: 0 }, "showContent").
-    set(itemHeadline, { position: "fixed", top: 0, height: 100, opacity: 1, fontSize: "calc(.4vw + 10px)", backgroundColor: "rgba(45, 45, 45, 0.8)" }, "showContent").
-    set(item, { y: 0, height: "auto", marginTop: 0, clearProps: "transform" }, "showContent").
-    set(unSelectedItems, { display: "none" }, "showContent").
-    set(timeline, { paddingBottom: 0 }, "showContent").
-    set(itemContent, { display: "block", top: 100 }, "showContent").
-    set(window, { scrollTo: { y: 0 } }, "showContent").
-    fromTo(itemContent, 0.2, { opacity: 0 }, { opacity: 1 }, "showContent");
+    // 阶段1：平滑扩展 + 淡出其他项 (0.4s)
+    to(timeline, 0.05, { maxWidth: "100%" }, "expandStart").
+    to(item, 0.4, { y: itemOffsetTop, width: "100%", height: "100vh" }, "expandStart").
+    to(itemPhoto, 0.4, { borderRadius: 0, height: "100vh" }, "expandStart").
+    to(itemHeadline, 0.4, { top: 0, height: "100vh", padding: 0, opacity: 1 }, "expandStart").
+    to(itemCTA, 0.2, { opacity: 0 }, "expandStart").
+    to(unSelectedItems, 0.2, { opacity: 0 }, "expandStart").
+    
+    // 阶段2：内容淡入 + 顶部栏缩小 (0.3s，与前面重叠 0.1s)
+    to(itemPhoto, 0.25, { height: 100, position: "fixed", top: 0 }, "-=0.1").
+    to(itemHeadline, 0.25, { 
+      height: 100, 
+      opacity: 1, 
+      fontSize: "calc(.4vw + 10px)", 
+      backgroundColor: "rgba(45, 45, 45, 0.8)"
+    }, "-=0.25").
+    set(itemHeadline, { position: "fixed", top: 0 }, "-=0.15").
+    set(item, { y: 0, height: "auto", marginTop: 0, clearProps: "transform" }, "-=0.15").
+    set(timeline, { paddingBottom: 0 }, "-=0.15").
+    
+    // 内容平滑淡入
+    fromTo(itemContent, 0.3, { opacity: 0, y: 20 }, { opacity: 1, y: 0 }, "-=0.1").
+    staggerFromTo(itemChildContents, 0.25, { opacity: 0, y: 15 }, { opacity: 1, y: 0 }, 0.05, "-=0.2");
   }
 }
 
@@ -143,10 +149,10 @@ backButton.addEventListener("click", () => {
         itemTL.pause();
         TweenMax.staggerFromTo(
         items,
-        0.3,
-        { opacity: 0 },
-        { opacity: 1 },
-        0.02,
+        0.4,
+        { opacity: 0, y: 10 },
+        { opacity: 1, y: 0 },
+        0.03,
         () => {
           isExpanded = false;
         });
@@ -154,10 +160,9 @@ backButton.addEventListener("click", () => {
         TweenMax.set(itemHeadlines, { clearProps: "all" });
       } });
 
-    // 快速关闭动画 - 总耗时 0.3s
+    // 平滑自然的关闭动画 - 总耗时 0.4s
     overlayTL.
-    to(selectedItem, 0, { opacity: 0 }).
-    to(overlay, 0, { height: "110vh", ease: Expo.easeOut }, "+=0.15").
-    to(overlay, 0.15, { height: 0, top: "100%", ease: Expo.easeOut });
+    fromTo(overlay, 0.35, { height: 0, top: "100%" }, { height: "110vh", top: 0, ease: Power1.easeInOut }).
+    to(overlay, 0.05, { height: 0, top: "100%", ease: Power1.easeInOut });
   }
 });
