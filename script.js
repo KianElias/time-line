@@ -211,7 +211,16 @@ function handleItemClick(id) {
     for (_i of items) {_i.classList.remove("is-active");}
     timeline.classList.add("is-expanded");
     item.classList.add("is-active");
+    
+    // 立刻显示返回按钮 - 不经过 CSS transition 延迟
     backButton.classList.add("is-active");
+    // 用 GSAP 直接设置样式，确保立刻显示
+    TweenMax.set(backButton, { 
+      opacity: 1, 
+      visibility: "visible",
+      top: "26px",
+      duration: 0
+    });
     
     // 先清除所有可能的残留样式 - 使用 cssText 清除
     items.forEach(it => {
@@ -286,6 +295,13 @@ backButton.addEventListener("click", () => {
     timeline.classList.remove("is-expanded");
     selectedItem.classList.remove("is-active");
     backButton.classList.remove("is-active");
+    
+    // 平滑隐藏返回按钮
+    TweenMax.to(backButton, 0.3, { 
+      opacity: 0, 
+      top: "10px",
+      ease: Power1.easeOut
+    });
     
     // 重置所有被修改的元素样式
     const itemHeadline = selectedItem.querySelector(".timeline-headline");
