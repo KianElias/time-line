@@ -189,16 +189,17 @@ body {
   outline: none;
   display: flex;
   cursor: pointer;
-  transition: 0.4s;
+  transition: opacity 0.2s ease-out, visibility 0s, top 0.3s ease-out;
 }
 .timeline-back.is-active {
   opacity: 1;
   top: 26px;
   visibility: visible;
-  transition-delay: 0s;
+  transition: opacity 0.2s ease-out, visibility 0s, top 0.3s ease-out;
 }
 .timeline-back:hover {
   background-color: rgba(58, 58, 58, 0.8);
+  transition: background-color 0.3s ease-out;
 }
 .timeline-back > svg {
   width: 28px;
