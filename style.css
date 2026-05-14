@@ -129,7 +129,7 @@ body {
   box-shadow: 0 10px 30px rgba(0, 0, 0.5, 0.5);
 }
 .timeline-content > img {
-  margin: 0 auto
+  margin: 0 auto;
   overflow: hidden;
   -o-object-fit: cover;
      object-fit: cover;
