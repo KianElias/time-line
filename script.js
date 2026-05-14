@@ -2,7 +2,8 @@ let selectedItem,
 itemTL,
 overlayTL,
 scrollTL,
-isExpanded = false;
+isExpanded = false,
+isAnimating = false; // 防止动画中重复触发
 
 const timeline = document.querySelector(".timeline");
 const items = document.querySelectorAll(".timeline-item");
@@ -17,37 +18,90 @@ const backButton = document.querySelector(".timeline-back");
 // 初始化所有图片的占位符（保留布局）
 function initializeImagePlaceholders() {
   items.forEach(item => {
+    const photoImg = item.querySelector('.timeline-photo img');
     const contentImages = item.querySelectorAll('.timeline-content img');
+    
+    // 预加载列表页的封面图片（第一张，固定尺寸）
+    if (photoImg && photoImg.src) {
+      const preloadImg = new Image();
+      preloadImg.src = photoImg.src;
+    }
+    
+    // 设置内容区图片的占位符
     contentImages.forEach(img => {
       // 设置 aspect-ratio 保留空间，防止文字堆叠
       img.style.aspectRatio = '16 / 9';
       img.style.backgroundColor = 'rgba(255, 255, 255, 0.05)';
       // 重置 opacity 以便 CSS 动画生效
       img.style.opacity = '0';
+      
+      // 为内容区的第一张图片预加载（重点优化手机端）
+      if (img === contentImages[0] && img.src) {
+        const preloadImg = new Image();
+        preloadImg.src = img.src;
+      }
     });
   });
 }
 
-// 图片缓存和预加载策略
+// 图片缓存和预加载策略 - 主动加载而不是预读
 function preloadImageOnExpand(id) {
   const item = document.querySelector(`[data-timeline=${id}]`);
   if (item) {
     const images = item.querySelectorAll('.timeline-content img');
     images.forEach((img, index) => {
-      // 预加载即将显示的图片
+      // 优先加载前3张图片，使用高优先级
       if (index < 3) {
-        const link = document.createElement('link');
-        link.rel = 'prefetch';
-        link.as = 'image';
-        link.href = img.src;
-        document.head.appendChild(link);
+        // 创建一个隐藏的 Image 对象立即开始加载
+        const preloadImg = new Image();
+        preloadImg.src = img.src;
+        preloadImg.onload = function() {
+          // 图片加载完成后，更新 DOM 中的图片
+          img.style.opacity = '0'; // 重置 opacity 以便动画生效
+        };
       }
+      
+      // 为所有内容区图片使用 prefetch 作为备选
+      const link = document.createElement('link');
+      link.rel = 'prefetch';
+      link.as = 'image';
+      link.href = img.src;
+      document.head.appendChild(link);
     });
   }
 }
 
 // 页面加载完成后初始化
-document.addEventListener('DOMContentLoaded', initializeImagePlaceholders);
+document.addEventListener('DOMContentLoaded', () => {
+  initializeImagePlaceholders();
+  
+  // 为所有图片添加 Intersection Observer，在即将进入视口时提前加载
+  const imageObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        const img = entry.target;
+        // 提前 200px 开始加载
+        if (img.dataset.preloaded !== 'true') {
+          const preloadImg = new Image();
+          preloadImg.onload = () => {
+            img.dataset.preloaded = 'true';
+          };
+          preloadImg.src = img.src;
+        }
+      }
+    });
+  }, {
+    rootMargin: '200px' // 提前 200px 加载
+  });
+  
+  // 观察所有内容区的图片
+  items.forEach(item => {
+    const contentImages = item.querySelectorAll('.timeline-content img');
+    contentImages.forEach(img => {
+      imageObserver.observe(img);
+    });
+  });
+});
 
 for (item of items) {
   const randomId = Math.random().
@@ -58,40 +112,56 @@ for (item of items) {
 
   // 点击图片直接进入
   const itemPhoto = item.querySelector(".timeline-photo");
-  itemPhoto.addEventListener("click", e => {
+  const readMoreBtn = itemPhoto.querySelector(".timeline-cta");
+  
+  // 统一处理点击事件（支持手机和电脑）
+  function triggerExpand() {
     if (!isExpanded) {
       handleItemClick(randomId);
     }
+  }
+  
+  // 点击事件
+  itemPhoto.addEventListener("click", e => {
+    e.preventDefault();
+    triggerExpand();
   });
 
-  // Hover 时显示提示
+  // Hover 时显示提示（仅桌面端）
   itemPhoto.addEventListener("mouseover", e => {
-    if (!isExpanded) {
-      // 显示 READ MORE 按钮提示用户可点击
-      const readMoreBtn = itemPhoto.querySelector(".timeline-cta");
-      if (readMoreBtn) {
-        TweenMax.fromTo(
-          readMoreBtn,
-          0.3,
-          { opacity: 0, scaleX: 0.5, scaleY: 0.1, y: -70 },
-          { opacity: 1, scaleX: 1, scaleY: 1, y: -5, ease: Back.easeOut }
-        );
-      }
+    if (!isExpanded && readMoreBtn) {
+      TweenMax.fromTo(
+        readMoreBtn,
+        0.3,
+        { opacity: 0, scaleX: 0.5, scaleY: 0.1, y: -70 },
+        { opacity: 1, scaleX: 1, scaleY: 1, y: -5, ease: Back.easeOut }
+      );
     }
   });
 
   itemPhoto.addEventListener("mouseout", e => {
-    if (!isExpanded) {
-      // 隐藏 READ MORE 按钮
-      const readMoreBtn = itemPhoto.querySelector(".timeline-cta");
-      if (readMoreBtn) {
-        TweenMax.to(readMoreBtn, 0.3, { opacity: 0, scaleX: 1, scaleY: 1, y: 100 });
-      }
+    if (!isExpanded && readMoreBtn) {
+      TweenMax.to(readMoreBtn, 0.3, { opacity: 0, scaleX: 1, scaleY: 1, y: 100 });
     }
   });
+  
+  // 手机端 Touch 事件（防止二次触发）
+  itemPhoto.addEventListener("touchstart", e => {
+    // 在手机上，直接触发展开，不显示提示
+    if (!isExpanded) {
+      handleItemClick(randomId);
+    }
+  }, { passive: true });
 }
 
 function handleItemClick(id) {
+  // 防止动画中重复触发
+  if (isAnimating || isExpanded) {
+    return;
+  }
+  
+  isAnimating = true;
+  
   if (overlayTL !== undefined) {
     overlayTL.progress(0);
     overlayTL.pause();
@@ -170,11 +240,17 @@ function handleItemClick(id) {
         itemTL.fromTo(el, 0.25, { opacity: 0, y: 15 }, { opacity: 1, y: 0 }, "-=0.2" + (index * 0.08));
       }
     });
+    
+    // 动画完成后重置防护标志
+    itemTL.call(() => {
+      isAnimating = false;
+    });
   }
 }
 
 backButton.addEventListener("click", () => {
-  if (isExpanded) {
+  if (isExpanded && !isAnimating) {
+    isAnimating = true;
     timeline.classList.remove("is-expanded");
     selectedItem.classList.remove("is-active");
     backButton.classList.remove("is-active");
@@ -191,6 +267,7 @@ backButton.addEventListener("click", () => {
         0.03,
         () => {
           isExpanded = false;
+          isAnimating = false;
         });
 
         TweenMax.set(itemHeadlines, { clearProps: "all" });
